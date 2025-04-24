@@ -1,14 +1,14 @@
-// Author
-CREATE CONSTRAINT author_id IF NOT EXISTS ON (a:Author) ASSERT a.id IS UNIQUE;
+// Author ID uniqueness
+CREATE CONSTRAINT author_id IF NOT EXISTS FOR (a:Author) REQUIRE a.id IS UNIQUE;
 
-// Paper
-CREATE CONSTRAINT paper_id IF NOT EXISTS ON (p:Paper) ASSERT p.id IS UNIQUE;
+// Paper ID uniqueness
+CREATE CONSTRAINT paper_id IF NOT EXISTS FOR (p:Paper) REQUIRE p.id IS UNIQUE;
 
-// Journal
-CREATE CONSTRAINT journal_name IF NOT EXISTS ON (j:Journal) ASSERT j.name IS UNIQUE;
+// Journal name uniqueness
+CREATE CONSTRAINT journal_name IF NOT EXISTS FOR (j:Journal) REQUIRE j.name IS UNIQUE;
 
-// Topic
-CREATE CONSTRAINT topic_id IF NOT EXISTS ON (t:Topic) ASSERT t.id IS UNIQUE;
+// Topic ID uniqueness
+CREATE CONSTRAINT topic_id IF NOT EXISTS FOR (t:Topic) REQUIRE t.id IS UNIQUE;
 
 
 //LOADING NODES
