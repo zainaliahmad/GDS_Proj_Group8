@@ -1,5 +1,9 @@
-# GDS_Proj_Group8
+# GDS_Proj_Group8 - ML Techniques on Bibliographic Dataset Using Graph-Based Approaches
 Repo for our Project for the Course Graph Data Science (CS343), Spring 2025
+
+#Use-cases for ML Techniques:
+1. Node Classification - Author Classification: Predict the research domain or expertise of an author based on their co-authorship network.
+2. Link Prediction - Citation Recommendation: Suggest relevant citations for a research paper by predicting possible citation links.
 
 Our results can be reproduced by the following steps:
 
