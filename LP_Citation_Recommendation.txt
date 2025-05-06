@@ -1,0 +1,78 @@
+// Step 1: Creating Graph Projection
+CALL gds.graph.project(
+  'CitationProj',  // Name of the projection
+  ['Paper'],  // Include only the Paper node
+  {
+    CITES: {  // Use the 'CITES' relationship as defined in graph
+      orientation: 'UNDIRECTED',  // Citation relationships will be undirected
+      properties: ['citationCount']  // Only include citationCount as an edge property
+    }
+  }
+);
+
+// Step 2: Configure Pipeline
+CALL gds.beta.pipeline.linkPrediction.create('citationLinkPr');
+
+// Step 3: Adding Node Properties
+CALL gds.beta.pipeline.linkPrediction.addNodeProperty('citationLinkPr', 'fastRP', {
+  mutateProperty: 'embedding',  // The property that will store the embeddings
+  embeddingDimension: 64,  // The dimension of the embedding vector
+  randomSeed: 42  // A random seed for reproducibility
+});
+
+// Step 4: Adding Link Features
+
+// L2 Feature (Including CitationCount)
+CALL gds.beta.pipeline.linkPrediction.addFeature('citationLinkPr', 'l2', {
+  nodeProperties: ['embedding'],  // Using node embeddings
+  edgeProperties: ['citationCount']  // Include citationCount as an edge property for L2 distance calculation
+}) YIELD featureSteps;
+
+// Hadamard Feature (Including CitationCount)
+CALL gds.beta.pipeline.linkPrediction.addFeature('citationLinkPr', 'hadamard', {
+  nodeProperties: ['embedding'],  // Using node embeddings
+  edgeProperties: ['citationCount']  // Include citationCount as an edge property for Hadamard product calculation
+}) YIELD featureSteps;
+
+// Step 5: Configuring Relationship Splits
+CALL gds.beta.pipeline.linkPrediction.configureSplit('citationLinkPr', {
+  testFraction: 0.25,  // 25% for testing
+  trainFraction: 0.6,  // 60% for training
+  validationFolds: 3   // for cross-validation
+}) YIELD splitConfig;
+
+// Step 6: Adding Model Candidates
+CALL gds.beta.pipeline.linkPrediction.addLogisticRegression('citationLinkPr');
+
+CALL gds.beta.pipeline.linkPrediction.addRandomForest('citationLinkPr', {numberOfDecisionTrees: 10}) // can change the number of trees
+
+// Step 7: AutoTuning (did not run)
+CALL gds.alpha.pipeline.linkPrediction.configureAutoTuning('citationLinkPr', {
+  maxTrials: 10
+}) YIELD autoTuningConfig;
+
+// Step 8: Training
+CALL gds.beta.pipeline.linkPrediction.train('CitationProj', {
+  pipeline: 'citationLinkPr',  // Your pipeline name
+  modelName: 'citationRecom',  // Name of the model
+  metrics: ['AUCPR', 'OUT_OF_BAG_ERROR'],  // Only valid metrics
+  targetRelationshipType: 'CITES',  // Relationship type in your graph
+  randomSeed: 18  // Random seed for reproducibility
+}) YIELD modelInfo, modelSelectionStats
+RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.AUCPR.train.avg AS avgTrainScore,
+  modelInfo.metrics.AUCPR.outerTrain AS outerTrainScore,
+  modelInfo.metrics.AUCPR.test AS testScore,
+  [cand IN modelSelectionStats.modelCandidates | cand.metrics.AUCPR.validation.avg] AS validationScores;
+
+// Step 9: Prediction (With Write Command)
+CALL gds.beta.pipeline.linkPrediction.predict.stream('citationLinkPr', {
+  modelName: 'citationRecom',
+  topN: 2,  // Only top 2 predicted links will be written
+  threshold: 0.5,  // Only predictions with a probability above 0.5 will be written
+  writeRelationshipType: 'PREDICTED_CITATION'  // Writing predicted links as 'PREDICTED_CITATION'
+}) YIELD node1, node2, probability
+WITH gds.util.asNode(node1) AS n1, gds.util.asNode(node2) AS n2, probability
+RETURN n1.title AS paper1, n2.title AS paper2, probability
+ORDER BY probability DESC, paper1;
