@@ -5,6 +5,7 @@ Repo for our Project for the Course Graph Data Science (CS343), Spring 2025
 1. Node Classification - Author Classification: Predict the research domain or expertise of an author based on their co-authorship network.
 2. Link Prediction - Citation Recommendation: Suggest relevant citations for a research paper by predicting possible citation links.
 
+# Result Reproduction Instructions:
 Our results can be reproduced by the following steps:
 
 1. Download the raw data files from the repository, https://github.com/habib-university/cs343-project
